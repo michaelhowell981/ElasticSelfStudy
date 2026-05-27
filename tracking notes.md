@@ -12,6 +12,14 @@ Checked the logs for build output: authentication error — the setup container 
 
 Used Gordon to correct the authentication. It created another container called "setup-users." From what I can tell, that should not be needed; I should be able to write in a stop-and-retry on a timer for the original setup container.
 
+learned ElasticSearch is more the for the storage and indexing of data. You require other tools in the ecosystem to make the process work. one tool to log and ship the data (filebeat) 
+Installed filebeat using git pull request from 'https://www.elastic.co/docs/reference/logstash/docker'
+
+Found fleet is simpler than filebeat and a better begining stage, need to learn to add fleet to feed data into Elastic. 
+
+
 Current targets being researched:
 1. Integration to use in Elastic for home lab testing
 2. Review how to have setup complete authentication instead of needing a separate container for that action.
+3. look into fleet policies and agents, fleet controller, 
+4. Set up VM for elastic data lake and fleet testing
