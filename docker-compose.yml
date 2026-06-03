@@ -1,6 +1,8 @@
 # ---------------------------------------------------------------------------
 # 3-Node Elasticsearch 8.x Cluster + Fleet Server Ready
 # xpack.security enabled | TLS transport layer
+# 3-Node Elasticsearch 8.x Cluster + Fleet Server Ready
+# xpack.security enabled | TLS transport layer
 # ---------------------------------------------------------------------------
 
 services:
@@ -146,6 +148,7 @@ services:
     networks:
       - esnet
     healthcheck:
+      test: ["CMD-SHELL", "curl -s --cacert /usr/share/elasticsearch/config/certs/ca/ca.crt https://localhost:9200/_cluster/health -u elastic:${ELASTIC_PASSWORD} | grep -qE 'green|yellow'"]
       test: ["CMD-SHELL", "curl -s --cacert /usr/share/elasticsearch/config/certs/ca/ca.crt https://localhost:9200/_cluster/health -u elastic:${ELASTIC_PASSWORD} | grep -qE 'green|yellow'"]
       interval: 10s
       timeout: 10s
