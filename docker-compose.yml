@@ -1,54 +1,26 @@
 # ---------------------------------------------------------------------------
-# 3-Node Elasticsearch 8.x Cluster
-# xpack.security enabled | TLS transport layer | Single-network stack
+# 3-Node Elasticsearch 8.x Cluster + Fleet Server Ready
+# xpack.security enabled | TLS transport layer
 # ---------------------------------------------------------------------------
 
 services:
 
-  # ---------- Certificate bootstrap (runs once, then exits) ----------
   setup:
     image: docker.elastic.co/elasticsearch/elasticsearch:${ES_VERSION}
     container_name: es-setup
     user: "0"
     volumes:
       - certs:/usr/share/elasticsearch/config/certs
+      - ./instances.yml:/usr/share/elasticsearch/config/certs/instances.yml
     networks:
       - esnet
-    command: >
-      bash -c '
-        if [ ! -f /usr/share/elasticsearch/config/certs/ca/ca.crt ]; then
-          echo "Generating CA...";
-          bin/elasticsearch-certutil ca --silent --pem \
-            -out /usr/share/elasticsearch/config/certs/ca.zip;
-          unzip /usr/share/elasticsearch/config/certs/ca.zip \
-            -d /usr/share/elasticsearch/config/certs;
-        fi;
-
-        if [ ! -f /usr/share/elasticsearch/config/certs/es01/es01.crt ]; then
-          echo "Generating node certs...";
-          echo -e "instances:\n  - name: es01\n    dns:\n      - es01\n      - localhost\n    ip:\n      - 127.0.0.1\n  - name: es02\n    dns:\n      - es02\n      - localhost\n    ip:\n      - 127.0.0.1\n  - name: es03\n    dns:\n      - es03\n      - localhost\n    ip:\n      - 127.0.0.1\n" > /usr/share/elasticsearch/config/certs/instances.yml;
-          bin/elasticsearch-certutil cert --silent --pem \
-            --ca-cert /usr/share/elasticsearch/config/certs/ca/ca.crt \
-            --ca-key  /usr/share/elasticsearch/config/certs/ca/ca.key \
-            --in      /usr/share/elasticsearch/config/certs/instances.yml \
-            -out      /usr/share/elasticsearch/config/certs/certs.zip;
-          unzip /usr/share/elasticsearch/config/certs/certs.zip \
-            -d /usr/share/elasticsearch/config/certs;
-        fi;
-
-        echo "Setting cert permissions...";
-        chown -R 1000:0 /usr/share/elasticsearch/config/certs;
-        find /usr/share/elasticsearch/config/certs -type d -exec chmod 750 {} \;;
-        find /usr/share/elasticsearch/config/certs -type f -exec chmod 640 {} \;;
-        echo "Setup complete.";
-      '
+    command: 'bash -c "set -e; if [ ! -f /usr/share/elasticsearch/config/certs/ca/ca.crt ]; then bin/elasticsearch-certutil ca --silent --pem -out /usr/share/elasticsearch/config/certs/ca.zip && unzip -q /usr/share/elasticsearch/config/certs/ca.zip -d /usr/share/elasticsearch/config/certs; fi; if [ ! -f /usr/share/elasticsearch/config/certs/es01/es01.crt ]; then bin/elasticsearch-certutil cert --silent --pem --ca-cert /usr/share/elasticsearch/config/certs/ca/ca.crt --ca-key /usr/share/elasticsearch/config/certs/ca/ca.key --in /usr/share/elasticsearch/config/certs/instances.yml -out /usr/share/elasticsearch/config/certs/certs.zip && unzip -q /usr/share/elasticsearch/config/certs/certs.zip -d /usr/share/elasticsearch/config/certs; fi; chown -R 1000:0 /usr/share/elasticsearch/config/certs; find /usr/share/elasticsearch/config/certs -type d -exec chmod 750 {} + && find /usr/share/elasticsearch/config/certs -type f -exec chmod 640 {} +;"'
     healthcheck:
       test: ["CMD-SHELL", "[ -f /usr/share/elasticsearch/config/certs/es01/es01.crt ]"]
       interval: 5s
       timeout: 5s
       retries: 20
 
-  # ---------- Node 1 (initial master / data) ----------
   es01:
     image: docker.elastic.co/elasticsearch/elasticsearch:${ES_VERSION}
     container_name: es01
@@ -88,19 +60,12 @@ services:
     networks:
       - esnet
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "curl -s --cacert /usr/share/elasticsearch/config/certs/ca/ca.crt \
-           https://localhost:9200/_cluster/health \
-           -u elastic:${ELASTIC_PASSWORD} | grep -qE '\"status\":\"(green|yellow)\"'"
-        ]
+      test: ["CMD-SHELL", "curl -s --cacert /usr/share/elasticsearch/config/certs/ca/ca.crt https://localhost:9200/_cluster/health -u elastic:${ELASTIC_PASSWORD} | grep -qE 'green|yellow'"]
       interval: 10s
       timeout: 10s
       retries: 30
     restart: unless-stopped
 
-  # ---------- Node 2 (data) ----------
   es02:
     image: docker.elastic.co/elasticsearch/elasticsearch:${ES_VERSION}
     container_name: es02
@@ -138,19 +103,12 @@ services:
     networks:
       - esnet
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "curl -s --cacert /usr/share/elasticsearch/config/certs/ca/ca.crt \
-           https://localhost:9200/_cluster/health \
-           -u elastic:${ELASTIC_PASSWORD} | grep -qE '\"status\":\"(green|yellow)\"'"
-        ]
+      test: ["CMD-SHELL", "curl -s --cacert /usr/share/elasticsearch/config/certs/ca/ca.crt https://localhost:9200/_cluster/health -u elastic:${ELASTIC_PASSWORD} | grep -qE 'green|yellow'"]
       interval: 10s
       timeout: 10s
       retries: 30
     restart: unless-stopped
 
-  # ---------- Node 3 (data) ----------
   es03:
     image: docker.elastic.co/elasticsearch/elasticsearch:${ES_VERSION}
     container_name: es03
@@ -188,19 +146,12 @@ services:
     networks:
       - esnet
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "curl -s --cacert /usr/share/elasticsearch/config/certs/ca/ca.crt \
-           https://localhost:9200/_cluster/health \
-           -u elastic:${ELASTIC_PASSWORD} | grep -qE '\"status\":\"(green|yellow)\"'"
-        ]
+      test: ["CMD-SHELL", "curl -s --cacert /usr/share/elasticsearch/config/certs/ca/ca.crt https://localhost:9200/_cluster/health -u elastic:${ELASTIC_PASSWORD} | grep -qE 'green|yellow'"]
       interval: 10s
       timeout: 10s
       retries: 30
     restart: unless-stopped
 
-  # ---------- Kibana password setup ----------
   setup-users:
     image: docker.elastic.co/elasticsearch/elasticsearch:${ES_VERSION}
     container_name: es-setup-users
@@ -214,22 +165,9 @@ services:
       - certs:/usr/share/elasticsearch/config/certs
     networks:
       - esnet
-    command: >
-      bash -c '
-        echo "Setting kibana_system password...";
-        until curl -s -X POST --cacert /usr/share/elasticsearch/config/certs/ca/ca.crt \
-          -u "elastic:${ELASTIC_PASSWORD}" \
-          https://es01:9200/_security/user/kibana_system/_password \
-          -H "Content-Type: application/json" \
-          -d "{\"password\":\"${KIBANA_PASSWORD}\"}" | grep -q ""; do
-          echo "Retrying password update...";
-          sleep 5;
-        done;
-        echo "Password set successfully.";
-      '
+    command: 'bash -c "until curl -s -X POST --cacert /usr/share/elasticsearch/config/certs/ca/ca.crt -u elastic:${ELASTIC_PASSWORD} https://es01:9200/_security/user/kibana_system/_password -H ''Content-Type: application/json'' -d ''{\"password\":\"${KIBANA_PASSWORD}\"}''; do sleep 5; done; echo Done;"'
     restart: on-failure
 
-  # ---------- Kibana ----------
   kibana:
     image: docker.elastic.co/kibana/kibana:${ES_VERSION}
     container_name: kibana
@@ -250,30 +188,19 @@ services:
     networks:
       - esnet
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "curl -s -I http://localhost:5601 | grep -q 'HTTP/1.1 302 Found'"
-        ]
+      test: ["CMD-SHELL", "curl -s -I http://localhost:5601 | grep -q 'HTTP/1.1 302'"]
       interval: 10s
       timeout: 10s
       retries: 30
     restart: unless-stopped
 
-# ---------- Named volumes ----------
 volumes:
   certs:
-    driver: local
   esdata01:
-    driver: local
   esdata02:
-    driver: local
   esdata03:
-    driver: local
   kibanadata:
-    driver: local
 
-# ---------- Network ----------
 networks:
   esnet:
     driver: bridge

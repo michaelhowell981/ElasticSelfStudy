@@ -17,6 +17,8 @@ Installed filebeat using git pull request from 'https://www.elastic.co/docs/refe
 
 Found fleet is simpler than filebeat and a better begining stage, need to learn to add fleet to feed data into Elastic. 
 
+Working on fleet, found I did not have the needed network setting built into my .yml and was missing self-signed certifications, used Gordon to correct, now I need to study the code used to be able to duplicate in the future. 
+
 
 Current targets being researched:
 1. Integration to use in Elastic for home lab testing
