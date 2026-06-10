@@ -1,8 +1,6 @@
 # ---------------------------------------------------------------------------
-# 3-Node Elasticsearch 8.x Cluster + Fleet Server Ready
-# xpack.security enabled | TLS transport layer
-# 3-Node Elasticsearch 8.x Cluster + Fleet Server Ready
-# xpack.security enabled | TLS transport layer
+# 3-Node Elasticsearch 8.x Cluster + Fleet Server - HTTP (Dev Only)
+# xpack.security enabled | NO TLS for HTTP (Dev Testing)
 # ---------------------------------------------------------------------------
 
 services:
@@ -36,10 +34,7 @@ services:
       - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
       - bootstrap.memory_lock=true
       - xpack.security.enabled=true
-      - xpack.security.http.ssl.enabled=true
-      - xpack.security.http.ssl.key=/usr/share/elasticsearch/config/certs/es01/es01.key
-      - xpack.security.http.ssl.certificate=/usr/share/elasticsearch/config/certs/es01/es01.crt
-      - xpack.security.http.ssl.certificate_authorities=/usr/share/elasticsearch/config/certs/ca/ca.crt
+      - xpack.security.http.ssl.enabled=false
       - xpack.security.transport.ssl.enabled=true
       - xpack.security.transport.ssl.key=/usr/share/elasticsearch/config/certs/es01/es01.key
       - xpack.security.transport.ssl.certificate=/usr/share/elasticsearch/config/certs/es01/es01.crt
@@ -62,7 +57,7 @@ services:
     networks:
       - esnet
     healthcheck:
-      test: ["CMD-SHELL", "curl -s --cacert /usr/share/elasticsearch/config/certs/ca/ca.crt https://localhost:9200/_cluster/health -u elastic:${ELASTIC_PASSWORD} | grep -qE 'green|yellow'"]
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health -u elastic:${ELASTIC_PASSWORD} | grep -qE 'green|yellow'"]
       interval: 10s
       timeout: 10s
       retries: 30
@@ -81,10 +76,7 @@ services:
       - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
       - bootstrap.memory_lock=true
       - xpack.security.enabled=true
-      - xpack.security.http.ssl.enabled=true
-      - xpack.security.http.ssl.key=/usr/share/elasticsearch/config/certs/es02/es02.key
-      - xpack.security.http.ssl.certificate=/usr/share/elasticsearch/config/certs/es02/es02.crt
-      - xpack.security.http.ssl.certificate_authorities=/usr/share/elasticsearch/config/certs/ca/ca.crt
+      - xpack.security.http.ssl.enabled=false
       - xpack.security.transport.ssl.enabled=true
       - xpack.security.transport.ssl.key=/usr/share/elasticsearch/config/certs/es02/es02.key
       - xpack.security.transport.ssl.certificate=/usr/share/elasticsearch/config/certs/es02/es02.crt
@@ -105,7 +97,7 @@ services:
     networks:
       - esnet
     healthcheck:
-      test: ["CMD-SHELL", "curl -s --cacert /usr/share/elasticsearch/config/certs/ca/ca.crt https://localhost:9200/_cluster/health -u elastic:${ELASTIC_PASSWORD} | grep -qE 'green|yellow'"]
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health -u elastic:${ELASTIC_PASSWORD} | grep -qE 'green|yellow'"]
       interval: 10s
       timeout: 10s
       retries: 30
@@ -124,10 +116,7 @@ services:
       - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
       - bootstrap.memory_lock=true
       - xpack.security.enabled=true
-      - xpack.security.http.ssl.enabled=true
-      - xpack.security.http.ssl.key=/usr/share/elasticsearch/config/certs/es03/es03.key
-      - xpack.security.http.ssl.certificate=/usr/share/elasticsearch/config/certs/es03/es03.crt
-      - xpack.security.http.ssl.certificate_authorities=/usr/share/elasticsearch/config/certs/ca/ca.crt
+      - xpack.security.http.ssl.enabled=false
       - xpack.security.transport.ssl.enabled=true
       - xpack.security.transport.ssl.key=/usr/share/elasticsearch/config/certs/es03/es03.key
       - xpack.security.transport.ssl.certificate=/usr/share/elasticsearch/config/certs/es03/es03.crt
@@ -148,8 +137,7 @@ services:
     networks:
       - esnet
     healthcheck:
-      test: ["CMD-SHELL", "curl -s --cacert /usr/share/elasticsearch/config/certs/ca/ca.crt https://localhost:9200/_cluster/health -u elastic:${ELASTIC_PASSWORD} | grep -qE 'green|yellow'"]
-      test: ["CMD-SHELL", "curl -s --cacert /usr/share/elasticsearch/config/certs/ca/ca.crt https://localhost:9200/_cluster/health -u elastic:${ELASTIC_PASSWORD} | grep -qE 'green|yellow'"]
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health -u elastic:${ELASTIC_PASSWORD} | grep -qE 'green|yellow'"]
       interval: 10s
       timeout: 10s
       retries: 30
@@ -164,11 +152,9 @@ services:
     environment:
       - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
       - KIBANA_PASSWORD=${KIBANA_PASSWORD}
-    volumes:
-      - certs:/usr/share/elasticsearch/config/certs
     networks:
       - esnet
-    command: 'bash -c "until curl -s -X POST --cacert /usr/share/elasticsearch/config/certs/ca/ca.crt -u elastic:${ELASTIC_PASSWORD} https://es01:9200/_security/user/kibana_system/_password -H ''Content-Type: application/json'' -d ''{\"password\":\"${KIBANA_PASSWORD}\"}''; do sleep 5; done; echo Done;"'
+    command: 'bash -c "until curl -s -X POST -u elastic:${ELASTIC_PASSWORD} http://es01:9200/_security/user/kibana_system/_password -H ''Content-Type: application/json'' -d ''{\"password\":\"${KIBANA_PASSWORD}\"}''; do sleep 5; done; echo Done;"'
     restart: on-failure
 
   kibana:
@@ -179,12 +165,10 @@ services:
         condition: service_completed_successfully
     environment:
       - SERVERNAME=kibana
-      - ELASTICSEARCH_HOSTS=https://es01:9200
+      - ELASTICSEARCH_HOSTS=http://es01:9200
       - ELASTICSEARCH_USERNAME=kibana_system
       - ELASTICSEARCH_PASSWORD=${KIBANA_PASSWORD}
-      - ELASTICSEARCH_SSL_CERTIFICATEAUTHORITIES=/usr/share/kibana/config/certs/ca/ca.crt
     volumes:
-      - certs:/usr/share/kibana/config/certs
       - kibanadata:/usr/share/kibana/data
     ports:
       - ${KIBANA_PORT}:5601
@@ -205,17 +189,14 @@ services:
         condition: service_healthy
     environment:
       - FLEET_SERVER_ENABLE=true
-      - ELASTICSEARCH_HOST=${ES_PROTOCOL}://${ES_HOST}:${ES_PORT_FLEET}
+      - ELASTICSEARCH_HOST=http://${ES_HOST}:${ES_PORT_FLEET}
       - ELASTICSEARCH_USERNAME=elastic
       - ELASTICSEARCH_PASSWORD=${ELASTIC_PASSWORD}
-      - ELASTICSEARCH_SSL_VERIFICATION_MODE=none
       - KIBANA_HOST=http://kibana:5601
       - KIBANA_USERNAME=elastic
       - KIBANA_PASSWORD=${ELASTIC_PASSWORD}
     volumes:
       - certs:/usr/share/fleet-server/certs
-      - ./elastic-agent.yml:/usr/share/elastic-agent/elastic-agent.yml
-      - ./elastic-agent.yml:/usr/share/elastic-agent/elastic-agent.yml
     ports:
       - 8220:8220
     networks:
