@@ -4,7 +4,7 @@ outputs:
     hosts:
       - https://es01:9200
     username: elastic
-    password: changeme_elastic
+    password: ${ELASTIC_PASSWORD}
     ssl:
       certificate_authorities:
         - /usr/share/fleet-server/certs/ca/ca.crt

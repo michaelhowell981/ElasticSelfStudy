@@ -19,6 +19,14 @@ Found fleet is simpler than filebeat and a better begining stage, need to learn 
 
 Working on fleet, found I did not have the needed network setting built into my .yml and was missing self-signed certifications, used Gordon to correct, now I need to study the code used to be able to duplicate in the future. 
 
+removed the need for self-signed certificates as all work is in the local network
+
+found that the IP address needed for the fleet server to connect needed to be local host, it is all working from the instances.yml document that is being used as a local DNS list. 
+
+adjusted with the help of another engineer the docker-compose to get all the requests pointing to the correct names, there are some consistancy of process issues that need addressed in the file still due to AI writings that I will correct, they are related to using the variables instead of hard coding. 
+
+Elastic search is standing and working with my local device, next step, arrange port forwarding to allow VM's to go into the monitoring fo elastic search.
+
 
 Current targets being researched:
 1. Integration to use in Elastic for home lab testing
