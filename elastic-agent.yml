@@ -1,9 +1,0 @@
-outputs:
-  default:
-    type: elasticsearch
-    hosts:
-      - "https://es01:9200"
-    username: elastic
-    password: changeme_elastic
-    ssl:
-      verification_mode: none
